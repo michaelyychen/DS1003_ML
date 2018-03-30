@@ -55,7 +55,7 @@ def one_hot_encoding_conversion(data,features_for_LE_and_OH, extra_features_for_
     OH_result = OH_enc.fit_transform(LE_and_extra)
     x = scipy.sparse.hstack((OH_result,data[features_rest]))
     y = data[label].as_matrix()
-    return x,y
+    return x.tocsr(),y
 def generate_data(train_years, test_years, fx_features_to_keep,\
                                 features_for_LE_and_OH,\
                                 extra_features_for_OH,\
@@ -74,10 +74,10 @@ def generate_data(train_years, test_years, fx_features_to_keep,\
 
     if post_season:
         train_data = read_and_combine_data(train_regular_season+train_post_season,fx_features_to_keep)
-        test_data = read_and_combine_data(train_regular_season+test_post_season,fx_features_to_keep)
+        test_data = read_and_combine_data(test_post_season+test_post_season,fx_features_to_keep)
     else:
         train_data = read_and_combine_data(train_regular_season,fx_features_to_keep)
-        test_data = read_and_combine_data(train_regular_season,fx_features_to_keep)
+        test_data = read_and_combine_data(test_regular_season,fx_features_to_keep)
     player = age_conversion(pd.read_csv(base_dir+player_filename))
 
     train_data = union_batter_pitcher(player,train_data)
@@ -91,19 +91,19 @@ def generate_data(train_years, test_years, fx_features_to_keep,\
                                         extra_features_for_OH,
                                         features_rest)
     print("Start writing data to {}".format(base_dir+filename))
-    save_as_picke({"x_train":x[:train_sz,:],"y_train":y[:train_sz],
-                    "x_test":x[train_sz:,:],"y_test":y[train_sz:]},
+    save_as_picke({"x_train":x[:train_sz],"y_train":y[:train_sz],
+                    "x_test":x[train_sz:],"y_test":y[train_sz:]},
                     base_dir+filename)
     
 def main():
     fx_features_to_keep = ["pitcher","batter", "balls","strikes","pitch_count","inning","side", "umpcall"]
-    train_year = [2,3]
-    test_year = [4]
+    train_year = [2,3,4]
+    test_year = [5]
     player_filename = "MLB_Players.csv"
     features_for_LE_and_OH = ["pitcher","batter","side","throws","bats"]
     extra_features_for_OH = ["inning"]
     features_rest = ["pitch_count","balls","strikes"]
-    filename = "{0}|{1}.pickle".format(str(train_year),str(train_year))
+    filename = "{0}|{1}.pickle".format(str(train_year),str(test_year))
 
     generate_data(train_year,test_year,fx_features_to_keep,
             features_for_LE_and_OH,
@@ -112,8 +112,6 @@ def main():
     
     # to read data from pickle
     x_train, y_train, x_test, y_test =  load_problem("Data/"+filename)
-    print(x_train.shape)
-    print(x_test.shape)
 if __name__ == '__main__':
   main()
 
