@@ -2,6 +2,7 @@ import random
 import numpy as np
 import pandas as pd
 import pickle
+import scipy
 
 def load_problem(file_name = "data.pickle"):
     f_myfile = open(file_name, 'rb')
@@ -48,11 +49,11 @@ def labe_encoder_conversion(data,features):
 
 def one_hot_encoding_conversion(data,features_for_LE_and_OH, extra_features_for_OH,features_rest, label = "umpcall"):
     from sklearn.preprocessing import LabelEncoder,OneHotEncoder
-    OH_enc = OneHotEncoder(sparse = False)
+    OH_enc = OneHotEncoder(sparse = True)
     LE_result = labe_encoder_conversion(data[features_for_LE_and_OH].fillna("-").as_matrix(),features_for_LE_and_OH)
     LE_and_extra = np.append(LE_result.transpose(),data[extra_features_for_OH].fillna("-"),axis=1)
     OH_result = OH_enc.fit_transform(LE_and_extra)
-    x = np.append(OH_result,data[features_rest],axis=1)
+    x = scipy.sparse.hstack((OH_result,data[features_rest]))
     y = data[label].as_matrix()
     return x,y
 def generate_data(train_years, test_years, fx_features_to_keep,\
@@ -94,14 +95,13 @@ def generate_data(train_years, test_years, fx_features_to_keep,\
                     "x_test":x[train_sz:,:],"y_test":y[train_sz:]},
                     base_dir+filename)
     
-
 def main():
     fx_features_to_keep = ["pitcher","batter", "balls","strikes","pitch_count","inning","side", "umpcall"]
     train_year = [2,3]
-    test_year = [6]
+    test_year = [4]
     player_filename = "MLB_Players.csv"
     features_for_LE_and_OH = ["pitcher","batter","side","throws","bats"]
-    extra_features_for_OH = ["inning"]      
+    extra_features_for_OH = ["inning"]
     features_rest = ["pitch_count","balls","strikes"]
     filename = "{0}|{1}.pickle".format(str(train_year),str(train_year))
 
@@ -111,8 +111,9 @@ def main():
             features_rest,filename=filename)
     
     # to read data from pickle
-    x_train, y_train, x_test, y_test =  load_problem(filename)
-    
+    x_train, y_train, x_test, y_test =  load_problem("Data/"+filename)
+    print(x_train.shape)
+    print(x_test.shape)
 if __name__ == '__main__':
   main()
 
