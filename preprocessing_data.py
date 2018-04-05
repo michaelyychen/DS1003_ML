@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import pickle
 import scipy
+from sklearn.utils import shuffle
+from sklearn.preprocessing import MinMaxScaler
 
 def load_problem(file_name = "data.pickle"):
     f_myfile = open(file_name, 'rb')
@@ -47,13 +49,22 @@ def labe_encoder_conversion(data,features):
     from sklearn.preprocessing import LabelEncoder,OneHotEncoder
     return np.array([LabelEncoder().fit_transform(data[:,i]) for i in range(data.shape[1])])
 
-def one_hot_encoding_conversion(data,features_for_LE_and_OH, extra_features_for_OH,features_rest, label = "umpcall"):
+def one_hot_encoding_conversion(data,features_for_LE_and_OH, extra_features_for_OH,features_rest, train_sz,label = "umpcall",NormalizeRest = True):
     from sklearn.preprocessing import LabelEncoder,OneHotEncoder
     OH_enc = OneHotEncoder(sparse = True)
     LE_result = labe_encoder_conversion(data[features_for_LE_and_OH].fillna("-").as_matrix(),features_for_LE_and_OH)
     LE_and_extra = np.append(LE_result.transpose(),data[extra_features_for_OH].fillna("-"),axis=1)
     OH_result = OH_enc.fit_transform(LE_and_extra)
-    x = scipy.sparse.hstack((OH_result,data[features_rest]))
+    rest = data[features_rest]
+    if NormalizeRest:
+        rest = data[features_rest]
+        rest_train = rest[:train_sz]
+        rest_test = rest[train_sz:]
+        scaler = MinMaxScaler()
+        rest_train = scaler.fit_transform(rest_train)
+        rest_test = scaler.transform(rest_test)
+        rest = np.append(rest_train,rest_test,axis = 0)
+    x = scipy.sparse.hstack((OH_result,rest))
     y = data[label].as_matrix()
     return x.tocsr(),y
 def generate_data(train_years, test_years, fx_features_to_keep,\
@@ -64,7 +75,9 @@ def generate_data(train_years, test_years, fx_features_to_keep,\
                                 player_filename = "MLB_Players.csv",\
                                 label = "umpcall",\
                                 filename = "data.pickle",
-                                post_season = True):
+                                post_season = True,
+                                toShuffle = True,
+                                NormalizeRest = True):
 
     train_regular_season = [base_dir+"MLB_201{0}/MLB_PitchFX_201{0}_RegularSeason.csv".format(i) for i in train_years]
     train_post_season = [base_dir+"MLB_201{0}/MLB_PitchFX_201{0}_RegularSeason.csv".format(i) for i in train_years]
@@ -89,10 +102,19 @@ def generate_data(train_years, test_years, fx_features_to_keep,\
     x,y = one_hot_encoding_conversion(train_test,
                                         features_for_LE_and_OH,
                                         extra_features_for_OH,
-                                        features_rest)
+                                        features_rest,
+                                        train_sz,
+                                        NormalizeRest = NormalizeRest)
+    # shuffle
+    if toShuffle:
+        x_train, y_train = shuffle(x[:train_sz], y[:train_sz])
+        x_test, y_test = shuffle(x[train_sz:], y[train_sz:])
+    else:
+        x_train, y_train = x[:train_sz], y[:train_sz]
+        x_test, y_test = x[train_sz:], y[train_sz:]
     print("Start writing data to {}".format(base_dir+filename))
-    save_as_picke({"x_train":x[:train_sz],"y_train":y[:train_sz],
-                    "x_test":x[train_sz:],"y_test":y[train_sz:]},
+    save_as_picke({"x_train":x_train,"y_train":y_train,
+                    "x_test":x_test,"y_test":y_test},
                     base_dir+filename)
     
 def main():
@@ -100,9 +122,9 @@ def main():
     train_year = [2,3,4]
     test_year = [5]
     player_filename = "MLB_Players.csv"
-    features_for_LE_and_OH = ["pitcher","batter","side","throws","bats"]
+    features_for_LE_and_OH = ["pitcher","batter","side","throws","bats","throws","bats"]
     extra_features_for_OH = ["inning"]
-    features_rest = ["pitch_count","balls","strikes"]
+    features_rest = ["pitch_count","balls","strikes","p_height", "p_weight", "p_age","b_height", "b_weight", "b_age",]
     filename = "{0}|{1}.pickle".format(str(train_year),str(test_year))
 
     generate_data(train_year,test_year,fx_features_to_keep,
