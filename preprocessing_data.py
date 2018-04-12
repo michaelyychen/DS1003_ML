@@ -33,18 +33,43 @@ def age_conversion(p):
     p["age"] = pd.Timestamp('today')
     p["age"] = (p["age"] - p["dob"])/ np.timedelta64(1, 'Y')
     return p
+
 def union_batter_pitcher(p,f):
     #last first throws bats height weight dob
     p = p.copy()
-    p.rename(columns={'bref_id': 'pitcher', 'last': 'p_last', 'first':'p_first', 'height': 'p_height', 'weight':'p_weight', 'age':'p_age'}, inplace=True)
+    # print(p.head())
+    p_columns = []
+    b_columns = []
+    for column in p.columns:
+        p_columns.append("p_" +  column)
+    p_columns[2] = "pitcher"
+    p.columns = p_columns
+    # p.rename(columns={'bref_id': 'pitcher', 'last': 'p_last', 'first':'p_first', 'height': 'p_height', 'weight':'p_weight', 'age':'p_age', 'hit_ratio':'p_hit_ratio'}, inplace=True)
     # result = pd.concat([f, p], axis=1, join='inner')
 
-    combined = pd.merge(f, p[["pitcher", "p_last", "p_first", "p_height", "p_weight", "p_age", "throws"]], on='pitcher')
-    p.rename(columns={'pitcher': 'batter', "p_last":"b_last", "p_first":"b_first", "p_height":"b_height", "p_weight":"b_weight", "p_age":"b_age"}, inplace=True)
+    combined = pd.merge(f, p[["pitcher", "p_last", "p_first", "p_height", "p_weight", "p_age", "p_throws", 'p_FA', 'p_FF', 'p_FT',
+       'p_FC', 'p_FS', 'p_SI', 'p_SF', 'p_SL', 'p_CH', 'p_CB', 'p_CU', 'p_KC',
+       'p_KN', 'p_EP', 'p_UN', 'p_XX', 'p_PO', 'p_FO', 'p_FA_speed',
+       'p_FF_speed', 'p_FT_speed', 'p_FC_speed', 'p_FS_speed', 'p_SI_speed',
+       'p_SF_speed', 'p_SL_speed', 'p_CH_speed', 'p_CB_speed', 'p_CU_speed',
+       'p_KC_speed', 'p_KN_speed', 'p_EP_speed', 'p_UN_speed', 'p_XX_speed',
+       'p_PO_speed', 'p_FO_speed', 'p_hit_ratio']], on='pitcher')
+
+
+    for column in p.columns:
+        b_columns.append("b_" +  column[2:])
+    b_columns[2] = "batter"
+    p.columns = b_columns
+    # print(b_columns)
+    # p.rename(columns={'pitcher': 'batter', "p_last":"b_last", "p_first":"b_first", "p_height":"b_height", "p_weight":"b_weight", "p_age":"b_age", "p_hit_ratio" : "b_hit_ratio"}, inplace=True)
     # result = pd.merge(result, p, on='batter')
-    combined = pd.merge(combined, p[["batter", "b_last", "b_first", "b_height", "b_weight", "b_age", "bats"]], on='batter')
-    combined.head()
+    combined = pd.merge(combined, p[["batter", "b_last", "b_first", "b_height", "b_weight", "b_age", "b_bats", "b_hit_ratio"]], on='batter')
+
     return combined
+
+
+
+
 def labe_encoder_conversion(data,features):
     from sklearn.preprocessing import LabelEncoder,OneHotEncoder
     return np.array([LabelEncoder().fit_transform(data[:,i]) for i in range(data.shape[1])])
@@ -116,7 +141,7 @@ def generate_data(train_years, test_years, fx_features_to_keep,\
     save_as_picke({"x_train":x_train,"y_train":y_train,
                     "x_test":x_test,"y_test":y_test},
                     base_dir+filename)
-    
+
 def main():
     fx_features_to_keep = ["pitcher","batter", "balls","strikes","pitch_count","inning","side", "umpcall"]
     train_year = [2,3,4]
@@ -131,7 +156,7 @@ def main():
             features_for_LE_and_OH,
             extra_features_for_OH,
             features_rest,filename=filename)
-    
+
     # to read data from pickle
     x_train, y_train, x_test, y_test =  load_problem("Data/"+filename)
 if __name__ == '__main__':
