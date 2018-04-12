@@ -11,7 +11,8 @@ def load_problem(file_name = "data.pickle"):
     data = pickle.load(f_myfile)
     f_myfile.close()
     return data["x_train"], data["y_train"],data["x_test"], data["y_test"]
-
+def gen_pitch_type_feature_name(pitch_types):
+    return ["p_"+name for name in pitch_types]+["p_"+name+"_speed" for name in pitch_types]
 def read_and_combine_data(files, features):
     frames = []
     for f in files:
@@ -47,13 +48,8 @@ def union_batter_pitcher(p,f):
     # p.rename(columns={'bref_id': 'pitcher', 'last': 'p_last', 'first':'p_first', 'height': 'p_height', 'weight':'p_weight', 'age':'p_age', 'hit_ratio':'p_hit_ratio'}, inplace=True)
     # result = pd.concat([f, p], axis=1, join='inner')
 
-    combined = pd.merge(f, p[["pitcher", "p_last", "p_first", "p_height", "p_weight", "p_age", "p_throws", 'p_FA', 'p_FF', 'p_FT',
-       'p_FC', 'p_FS', 'p_SI', 'p_SF', 'p_SL', 'p_CH', 'p_CB', 'p_CU', 'p_KC',
-       'p_KN', 'p_EP', 'p_UN', 'p_XX', 'p_PO', 'p_FO', 'p_FA_speed',
-       'p_FF_speed', 'p_FT_speed', 'p_FC_speed', 'p_FS_speed', 'p_SI_speed',
-       'p_SF_speed', 'p_SL_speed', 'p_CH_speed', 'p_CB_speed', 'p_CU_speed',
-       'p_KC_speed', 'p_KN_speed', 'p_EP_speed', 'p_UN_speed', 'p_XX_speed',
-       'p_PO_speed', 'p_FO_speed', 'p_hit_ratio']], on='pitcher')
+    combined = pd.merge(f, p[["pitcher", "p_last", "p_first", "p_height", "p_weight", "p_age", "p_throws","p_hit_ratio"]+
+    gen_pitch_type_feature_name(["FF","SL","SI","CH","FT","CU","KC","FC","FS"])], on='pitcher')
 
 
     for column in p.columns:
@@ -141,21 +137,24 @@ def generate_data(train_years, test_years, fx_features_to_keep,\
     save_as_picke({"x_train":x_train,"y_train":y_train,
                     "x_test":x_test,"y_test":y_test},
                     base_dir+filename)
-
 def main():
+    pitch_types = ["FF","SL","SI","CH","FT","CU","KC","FC","FS"]
     fx_features_to_keep = ["pitcher","batter", "balls","strikes","pitch_count","inning","side", "umpcall"]
     train_year = [2,3,4]
     test_year = [5]
-    player_filename = "MLB_Players.csv"
-    features_for_LE_and_OH = ["pitcher","batter","side","throws","bats","throws","bats"]
+    player_filename = "MLB_Players_Stats.csv"
+    features_for_LE_and_OH = ["pitcher","batter","side","p_throws","b_bats"]
     extra_features_for_OH = ["inning"]
-    features_rest = ["pitch_count","balls","strikes","p_height", "p_weight", "p_age","b_height", "b_weight", "b_age",]
+    features_rest = ["pitch_count","balls","strikes","p_height", "p_weight", "p_age","b_height", "b_weight", "b_age","p_hit_ratio","b_hit_ratio"]+\
+                    gen_pitch_type_feature_name(pitch_types)
     filename = "{0}|{1}.pickle".format(str(train_year),str(test_year))
 
     generate_data(train_year,test_year,fx_features_to_keep,
             features_for_LE_and_OH,
             extra_features_for_OH,
-            features_rest,filename=filename)
+            features_rest,
+            filename=filename,
+            player_filename = player_filename)
 
     # to read data from pickle
     x_train, y_train, x_test, y_test =  load_problem("Data/"+filename)
