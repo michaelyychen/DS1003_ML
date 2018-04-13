@@ -48,9 +48,7 @@ def union_batter_pitcher(p,f):
     # p.rename(columns={'bref_id': 'pitcher', 'last': 'p_last', 'first':'p_first', 'height': 'p_height', 'weight':'p_weight', 'age':'p_age', 'hit_ratio':'p_hit_ratio'}, inplace=True)
     # result = pd.concat([f, p], axis=1, join='inner')
 
-    combined = pd.merge(f, p[["pitcher", "p_last", "p_first", "p_height", "p_weight", "p_age", "p_throws","p_hit_ratio"]+
-    gen_pitch_type_feature_name(["FF","SL","SI","CH","FT","CU","KC","FC","FS"])], on='pitcher')
-
+    combined = pd.merge(f, p[["pitcher", "p_throws","p_hit_ratio"]], on='pitcher')
 
     for column in p.columns:
         b_columns.append("b_" +  column[2:])
@@ -59,7 +57,7 @@ def union_batter_pitcher(p,f):
     # print(b_columns)
     # p.rename(columns={'pitcher': 'batter', "p_last":"b_last", "p_first":"b_first", "p_height":"b_height", "p_weight":"b_weight", "p_age":"b_age", "p_hit_ratio" : "b_hit_ratio"}, inplace=True)
     # result = pd.merge(result, p, on='batter')
-    combined = pd.merge(combined, p[["batter", "b_last", "b_first", "b_height", "b_weight", "b_age", "b_bats", "b_hit_ratio"]], on='batter')
+    combined = pd.merge(combined, p[["batter", "b_bats", "b_hit_ratio"]], on='batter')
 
     return combined
 
@@ -139,15 +137,16 @@ def generate_data(train_years, test_years, fx_features_to_keep,\
                     base_dir+filename)
 def main():
     pitch_types = ["FF","SL","SI","CH","FT","CU","KC","FC","FS"]
-    fx_features_to_keep = ["pitcher","batter", "balls","strikes","pitch_count","inning","side", "umpcall"]
+    fx_features_to_keep = ["pitcher","batter", "pitch_type", "balls","strikes","pitch_count","inning","side", "umpcall"]
     train_year = [2,3,4]
     test_year = [5]
     player_filename = "MLB_Players_Stats.csv"
     features_for_LE_and_OH = ["pitcher","batter","side","p_throws","b_bats"]
     extra_features_for_OH = ["inning"]
-    features_rest = ["pitch_count","balls","strikes","p_height", "p_weight", "p_age","b_height", "b_weight", "b_age","p_hit_ratio","b_hit_ratio"]+\
-                    gen_pitch_type_feature_name(pitch_types)
-    filename = "{0}|{1}.pickle".format(str(train_year),str(test_year))
+    # features_rest = ["pitch_count","balls","strikes","p_height", "p_weight", "p_age","b_height", "b_weight", "b_age","p_hit_ratio","b_hit_ratio"]+\
+    #                 gen_pitch_type_feature_name(pitch_types)
+    features_rest = ["pitch_count","balls","strikes","p_hit_ratio","b_hit_ratio"]
+    filename = "save.pickle"
 
     generate_data(train_year,test_year,fx_features_to_keep,
             features_for_LE_and_OH,
