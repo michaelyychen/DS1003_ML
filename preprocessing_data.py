@@ -48,7 +48,13 @@ def test_data_pitch_type_conversion(test_data, player_data,pitch_types):
         player = name2pitch_distrib[name]
         if "weight" not in player:
             player["weight"] = [player[p_type] for p_type in pitch_types]
-        return random.choices(pitch_types,weights = player["weight"])[0]
+        w = player["weight"]
+        if np.sum(w)>0 :
+            decision = random.choices(pitch_types,weights = player["weight"])
+            decision = decision[0]
+        else :
+            decision = "FF"
+        return decision
 
     def name_to_pitch(row):
         p = row["pitcher"]
