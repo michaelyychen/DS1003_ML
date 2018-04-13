@@ -83,8 +83,8 @@ def one_hot_encoding_conversion(data,features_for_LE_and_OH, extra_features_for_
     LE_result = labe_encoder_conversion(data[features_for_LE_and_OH].fillna("-").as_matrix(),features_for_LE_and_OH)
     LE_and_extra = np.append(LE_result.transpose(),data[extra_features_for_OH].fillna("-"),axis=1)
     OH_result = OH_enc.fit_transform(LE_and_extra)
-    rest = data[features_rest]
-    if NormalizeRest:
+    if NormalizeRest and len(features_rest) >0 :
+        rest = data[features_rest]
         rest = data[features_rest]
         rest_train = rest[:train_sz]
         rest_test = rest[train_sz:]
@@ -92,7 +92,9 @@ def one_hot_encoding_conversion(data,features_for_LE_and_OH, extra_features_for_
         rest_train = scaler.fit_transform(rest_train)
         rest_test = scaler.transform(rest_test)
         rest = np.append(rest_train,rest_test,axis = 0)
-    x = scipy.sparse.hstack((OH_result,rest))
+        x = scipy.sparse.hstack((OH_result,rest))
+    else:
+        x = OH_result
     y = data[label].as_matrix()
     return x.tocsr(),y
 def generate_data(train_years, test_years, fx_features_to_keep,\
@@ -125,7 +127,7 @@ def generate_data(train_years, test_years, fx_features_to_keep,\
     test_data = union_batter_pitcher(player,test_data)
 
     test_data = test_data_pitch_type_conversion(test_data,player)
-    
+
     train_sz = train_data.shape[0]
     train_test = pd.concat([train_data,test_data])
     print("Start One-hot encoding")
@@ -152,7 +154,7 @@ def main():
     train_year = [2,3,4]
     test_year = [5]
     player_filename = "MLB_Players_Stats.csv"
-    features_for_LE_and_OH = ["pitcher","batter","side","p_throws","b_bats"]
+    features_for_LE_and_OH = ["pitcher","batter","side","p_throws","b_bats","pitch_type"]
     extra_features_for_OH = ["inning"]
     # features_rest = ["pitch_count","balls","strikes","p_height", "p_weight", "p_age","b_height", "b_weight", "b_age","p_hit_ratio","b_hit_ratio"]+\
     #                 gen_pitch_type_feature_name(pitch_types)
