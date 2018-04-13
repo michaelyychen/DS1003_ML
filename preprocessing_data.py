@@ -34,15 +34,25 @@ def age_conversion(p):
     p["age"] = pd.Timestamp('today')
     p["age"] = (p["age"] - p["dob"])/ np.timedelta64(1, 'Y')
     return p
-def test_data_pitch_type_conversion(test_data, player_data):
-    name2pitch = {}
+def get_pitch_distribution(player_data, pitch_types):
+    pitch_stats = {}
+    for index , row in player_data.iterrows():
+        pitch_stats[row.bref_id] = {p_type:0 for p_type in pitch_types}
+        for p_type in pitch_types:
+            pitch_stats[row.bref_id][p_type] = row[p_type]
+    return pitch_stats
+def test_data_pitch_type_conversion(test_data, player_data,pitch_types):
+    import random
+    name2pitch_distrib = get_pitch_distribution(player_data,pitch_types)
+    def get_pitch(name):
+        player = name2pitch_distrib[name]
+        if "weight" not in player:
+            player["weight"] = [player[p_type] for p_type in pitch_types]
+        return random.choices(pitch_types,weights = player["weight"])[0]
+
     def name_to_pitch(row):
         p = row["pitcher"]
-        if p in name2pitch:
-            return name2pitch[p]
-        pp = player_data.loc[player_data["bref_id"]==p]
-        name2pitch[p] = pp["most_likely_pitch"].to_string(index = False)
-        return name2pitch[p]
+        return get_pitch(p)
     test_data["pitch_type"] = test_data.apply(name_to_pitch,axis = 1)
     return test_data
 
@@ -73,6 +83,7 @@ def union_batter_pitcher(p,f):
     return combined
 
 
+
 def labe_encoder_conversion(data,features):
     from sklearn.preprocessing import LabelEncoder,OneHotEncoder
     return np.array([LabelEncoder().fit_transform(data[:,i]) for i in range(data.shape[1])])
@@ -97,13 +108,14 @@ def one_hot_encoding_conversion(data,features_for_LE_and_OH, extra_features_for_
         x = OH_result
     y = data[label].as_matrix()
     return x.tocsr(),y
-def generate_data(train_years, test_years, fx_features_to_keep,\
-                                features_for_LE_and_OH,\
-                                extra_features_for_OH,\
-                                features_rest,\
-                                base_dir = "Data/",\
-                                player_filename = "MLB_Players.csv",\
-                                label = "umpcall",\
+def generate_data(train_years, test_years, fx_features_to_keep,
+                                features_for_LE_and_OH,
+                                extra_features_for_OH,
+                                features_rest,
+                                pitch_types,
+                                base_dir = "Data/",
+                                player_filename = "MLB_Players.csv",
+                                label = "umpcall",
                                 filename = "data.pickle",
                                 post_season = True,
                                 toShuffle = True,
@@ -126,7 +138,7 @@ def generate_data(train_years, test_years, fx_features_to_keep,\
     train_data = union_batter_pitcher(player,train_data)
     test_data = union_batter_pitcher(player,test_data)
 
-    test_data = test_data_pitch_type_conversion(test_data,player)
+    test_data = test_data_pitch_type_conversion(test_data,player,pitch_types)
 
     train_sz = train_data.shape[0]
     train_test = pd.concat([train_data,test_data])
@@ -165,6 +177,7 @@ def main():
             features_for_LE_and_OH,
             extra_features_for_OH,
             features_rest,
+            pitch_types,
             filename=filename,
             player_filename = player_filename)
 
