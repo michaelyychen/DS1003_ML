@@ -34,6 +34,17 @@ def age_conversion(p):
     p["age"] = pd.Timestamp('today')
     p["age"] = (p["age"] - p["dob"])/ np.timedelta64(1, 'Y')
     return p
+def test_data_pitch_type_conversion(test_data, player_data):
+    name2pitch = {}
+    def name_to_pitch(row):
+        p = row["pitcher"]
+        if p in name2pitch:
+            return name2pitch[p]
+        pp = player_data.loc[player_data["bref_id"]==p]
+        name2pitch[p] = pp["most_likely_pitch"].to_string(index = False)
+        return name2pitch[p]
+    test_data["pitch_type"] = test_data.apply(name_to_pitch,axis = 1)
+    return test_data
 
 def union_batter_pitcher(p,f):
     #last first throws bats height weight dob
@@ -60,8 +71,6 @@ def union_batter_pitcher(p,f):
     combined = pd.merge(combined, p[["batter", "b_bats", "b_hit_ratio"]], on='batter')
 
     return combined
-
-
 
 
 def labe_encoder_conversion(data,features):
@@ -115,6 +124,8 @@ def generate_data(train_years, test_years, fx_features_to_keep,\
     train_data = union_batter_pitcher(player,train_data)
     test_data = union_batter_pitcher(player,test_data)
 
+    test_data = test_data_pitch_type_conversion(test_data,player)
+    
     train_sz = train_data.shape[0]
     train_test = pd.concat([train_data,test_data])
     print("Start One-hot encoding")
