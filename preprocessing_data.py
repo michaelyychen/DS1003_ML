@@ -125,7 +125,7 @@ def generate_data(train_years, test_years, fx_features_to_keep,\
     test_data = union_batter_pitcher(player,test_data)
 
     test_data = test_data_pitch_type_conversion(test_data,player)
-    
+
     train_sz = train_data.shape[0]
     train_test = pd.concat([train_data,test_data])
     print("Start One-hot encoding")
@@ -152,7 +152,7 @@ def main():
     train_year = [2,3,4]
     test_year = [5]
     player_filename = "MLB_Players_Stats.csv"
-    features_for_LE_and_OH = ["pitcher","batter","side","p_throws","b_bats"]
+    features_for_LE_and_OH = ["pitcher","batter","side","p_throws","b_bats", "pitch_type"]
     extra_features_for_OH = ["inning"]
     # features_rest = ["pitch_count","balls","strikes","p_height", "p_weight", "p_age","b_height", "b_weight", "b_age","p_hit_ratio","b_hit_ratio"]+\
     #                 gen_pitch_type_feature_name(pitch_types)
