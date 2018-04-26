@@ -1,3 +1,4 @@
+
 import random
 import numpy as np
 import pandas as pd
@@ -114,6 +115,40 @@ def one_hot_encoding_conversion(data,features_for_LE_and_OH, extra_features_for_
         x = OH_result
     y = data[label].as_matrix()
     return x.tocsr(),y
+def merge_Balls_Strikes(train, test):
+    def BallStrike2BS(row):
+        b = row["balls"]
+        s = row["strikes"]
+        if b is 0 and s is 0:
+            return 0
+        elif b is 1 and s is 0:
+            return 1
+        elif b is 2 and s is 0:
+            return 2
+        elif b is 3 and s is 0:
+            return 3
+        elif b is 0 and s is 1:
+            return 4
+        elif b is 1 and s is 1:
+            return 5
+        elif b is 2 and s is 1:
+            return 6
+        elif b is 3 and s is 1:
+            return 7
+        elif b is 0 and s is 2:
+            return 8
+        elif b is 1 and s is 2:
+            return 9
+        elif b is 2 and s is 2:
+            return 10
+        elif b is 3 and s is 2:
+            return 11
+        else:
+            return 12
+    train["ball_strike"] = train.apply(BallStrike2BS,axis = 1)
+    test["ball_strike"] = test.apply(BallStrike2BS,axis = 1)
+    return train, test
+
 def generate_data(train_years, test_years, fx_features_to_keep,
                                 features_for_LE_and_OH,
                                 extra_features_for_OH,
@@ -146,6 +181,15 @@ def generate_data(train_years, test_years, fx_features_to_keep,
 
     test_data = test_data_pitch_type_conversion(test_data,player,pitch_types)
 
+    # Combine balls and strikes to one feature
+    train_data, test_data = merge_Balls_Strikes(train_data,test_data)
+    if "balls" in features_for_LE_and_OH:
+        features_for_LE_and_OH.remove("balls")
+    if "ball_strike" in features_for_LE_and_OH:
+        features_for_LE_and_OH.remove("strikes")
+    extra_features_for_OH.append("ball_strike")
+
+
     train_sz = train_data.shape[0]
     train_test = pd.concat([train_data,test_data])
     print("Start One-hot encoding")
@@ -169,14 +213,15 @@ def generate_data(train_years, test_years, fx_features_to_keep,
 def main():
     pitch_types = ["FF","SL","SI","CH","FT","CU","KC","FC","FS"]
     fx_features_to_keep = ["pitcher","batter", "pitch_type", "balls","strikes","pitch_count","inning","side", "umpcall"]
-    train_year = [2,3,4]
-    test_year = [5]
+    train_year = [5,6]
+    test_year = [7]
     player_filename = "MLB_Players_Stats.csv"
-    features_for_LE_and_OH = ["pitcher","batter","side","p_throws","b_bats","pitch_type"]
+    # features_for_LE_and_OH = ["pitcher","batter","side","p_throws","b_bats","pitch_type"]
+    features_for_LE_and_OH = ["side","p_throws","b_bats","pitch_type"]
     extra_features_for_OH = ["inning"]
     # features_rest = ["pitch_count","balls","strikes","p_height", "p_weight", "p_age","b_height", "b_weight", "b_age","p_hit_ratio","b_hit_ratio"]+\
     #                 gen_pitch_type_feature_name(pitch_types)
-    features_rest = ["pitch_count","balls","strikes","p_hit_ratio","b_hit_ratio"]
+    features_rest = ["pitch_count","p_hit_ratio","b_hit_ratio"]
     filename = "save.pickle"
 
     generate_data(train_year,test_year,fx_features_to_keep,
@@ -191,3 +236,4 @@ def main():
     x_train, y_train, x_test, y_test =  load_problem("Data/"+filename)
 if __name__ == '__main__':
   main()
+

@@ -120,7 +120,7 @@ def combine_stats_with_original_player_data(players, player_stats,pitch_types):
     return temp
 
 def main():
-    years = [2,3,4]
+    years = [5,6]
     base_dir = "Data/"
     output_filename = base_dir+"MLB_Players_Stats.csv"
     features_to_load = ["pitcher","batter","pitch_type","start_speed","spin_dir","umpcall"]
