@@ -38,28 +38,28 @@ class Fcc(nn.Module):
         p = 0.3
         res_dim=1024
 
-        self.lin1 = nn.Linear(D_in, 2048)
+        self.lin1 = nn.Linear(D_in, 128)
         # self.drop2 = nn.Dropout(0.5)
         # self.lin9 = nn.Linear(2048,2048)
         # self.drop8 = nn.Dropout(0.3)
-        self.res2 = ResNet(2048)
-        self.drop3 = nn.Dropout(0.4)
-        self.res3 = ResNet(2048)
-        self.drop4 = nn.Dropout(0.4)
+        self.res2 = ResNet(128)
+        self.drop3 = nn.Dropout(0.1)
+        # self.res3 = ResNet(2048)
+        # self.drop4 = nn.Dropout(0.4)
 
-        self.lin3 = nn.Linear(2048, 1024)
+        # self.lin3 = nn.Linear(2048, 1024)
 
-        self.res4 = ResNet(1024)
-        self.drop5 = nn.Dropout(0.2)
-        self.res5 = ResNet(1024)
-        self.drop6 = nn.Dropout(0.2)
-        self.lin6 = nn.Linear(1024, 512)
-        # self.res6 = ResNet(1024)
-        self.drop7 = nn.Dropout(0.2)
-        self.res7 = ResNet(512)
-        self.lin7 = nn.Linear(512,256)
+        # self.res4 = ResNet(1024)
+        # self.drop5 = nn.Dropout(0.2)
+        # self.res5 = ResNet(1024)
+        # self.drop6 = nn.Dropout(0.2)
+        # self.lin6 = nn.Linear(1024, 512)
+        # # self.res6 = ResNet(1024)
+        # self.drop7 = nn.Dropout(0.2)
+        # self.res7 = ResNet(512)
+        self.lin7 = nn.Linear(128,64)
         # self.res8 = ResNet(256)
-        self.lin8 = nn.Linear(256,3)
+        self.lin8 = nn.Linear(64,3)
     
     def forward(self, x):
 
@@ -76,28 +76,28 @@ class Fcc(nn.Module):
         output = F.relu(output)
         
         output = self.drop3(output)
-        output = self.res3(output)
-        output = F.relu(output)
-        
-        output = self.drop4(output)
-        output = F.relu(self.lin3(output))
-
-        output = self.res4(output)
-        output = F.relu(output)
-
-        output = self.drop5(output)
-        output = self.res5(output)
-        output = F.relu(output)
-
-        output = self.drop6(output)
-        output = self.lin6(output)
-        output = F.relu(output)
-
-        # output = self.res6(output)
+        # output = self.res3(output)
         # output = F.relu(output)
-        output = self.drop7(output)
-        output = self.res7(output)
-        output = F.relu(output)
+        
+        # output = self.drop4(output)
+        # output = F.relu(self.lin3(output))
+
+        # output = self.res4(output)
+        # output = F.relu(output)
+
+        # output = self.drop5(output)
+        # output = self.res5(output)
+        # output = F.relu(output)
+
+        # output = self.drop6(output)
+        # output = self.lin6(output)
+        # output = F.relu(output)
+
+        # # output = self.res6(output)
+        # # output = F.relu(output)
+        # output = self.drop7(output)
+        # output = self.res7(output)
+        # output = F.relu(output)
 
         output = self.lin7(output)
         output = F.relu(output)
