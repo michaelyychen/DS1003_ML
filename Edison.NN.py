@@ -1,12 +1,15 @@
-import pandas as pd
+import pickle
 import numpy as np
 import math
 import torch
 from torch.autograd import Variable
 from torch import nn
 from torch.nn import functional as F
-
-from preprocessing_data import load_problem
+def load_problem(file_name = "data.pickle"):
+    f_myfile = open(file_name, 'rb')
+    data = pickle.load(f_myfile)
+    f_myfile.close()
+    return data["x_train"], data["y_train"],data["x_test"], data["y_test"]
 base_dir = "Data/"
 filename = "save.pickle"
 x_train, y_train, x_test,y_test = load_problem(base_dir+filename)
@@ -35,27 +38,28 @@ class Fcc(nn.Module):
         p = 0.3
         res_dim=1024
 
-        self.lin1 = nn.Linear(D_in, 4096)
-        #self.lin1 = nn.Linear(2*self.embedding.embedding_dim, hid_dim[0])
-        #self.drop2 = nn.Dropout(p)
-        self.res2 = ResNet(4096)
-        # self.drop3 = nn.Dropout(p)
-        self.res3 = ResNet(4096)
-        #self.drop4 = nn.Dropout(p)
+        self.lin1 = nn.Linear(D_in, 2048)
+        # self.drop2 = nn.Dropout(0.5)
+        # self.lin9 = nn.Linear(2048,2048)
+        # self.drop8 = nn.Dropout(0.3)
+        self.res2 = ResNet(2048)
+        self.drop3 = nn.Dropout(0.4)
+        self.res3 = ResNet(2048)
+        self.drop4 = nn.Dropout(0.4)
 
-        self.lin3 = nn.Linear(4096, 2048)
+        self.lin3 = nn.Linear(2048, 1024)
 
-        self.res4 = ResNet(2048)
-        # self.drop5 = nn.Dropout(p)
-        self.res5 = ResNet(2048)
-        #self.drop6 = nn.Dropout(p)
-        self.lin6 = nn.Linear(2048, 1024)
+        self.res4 = ResNet(1024)
+        self.drop5 = nn.Dropout(0.2)
+        self.res5 = ResNet(1024)
+        self.drop6 = nn.Dropout(0.2)
+        self.lin6 = nn.Linear(1024, 512)
         # self.res6 = ResNet(1024)
-        # self.drop5 = nn.Dropout(p)
-        self.res7 = ResNet(1024)
-        self.lin7 = nn.Linear(1024,512)
-        self.res8 = ResNet(512)
-        self.lin8 = nn.Linear(512,3)
+        self.drop7 = nn.Dropout(0.2)
+        self.res7 = ResNet(512)
+        self.lin7 = nn.Linear(512,256)
+        # self.res8 = ResNet(256)
+        self.lin8 = nn.Linear(256,3)
     
     def forward(self, x):
 
@@ -63,38 +67,43 @@ class Fcc(nn.Module):
         output = self.lin1(x)
         output = F.relu(output)
         
-        #output = self.drop2(output)
+        # output = self.drop2(output)
+        
+        # output = F.relu(self.lin9(output))
+        # output = self.drop8(output)
+        
         output = self.res2(output)
         output = F.relu(output)
         
-        # output = self.drop3(output)
+        output = self.drop3(output)
         output = self.res3(output)
         output = F.relu(output)
         
+        output = self.drop4(output)
         output = F.relu(self.lin3(output))
 
-        #output = self.drop4(output)
         output = self.res4(output)
         output = F.relu(output)
 
-        # output = self.drop5(output)
+        output = self.drop5(output)
         output = self.res5(output)
         output = F.relu(output)
 
+        output = self.drop6(output)
         output = self.lin6(output)
         output = F.relu(output)
 
         # output = self.res6(output)
         # output = F.relu(output)
-        # output = self.drop5(output)
+        output = self.drop7(output)
         output = self.res7(output)
         output = F.relu(output)
 
         output = self.lin7(output)
         output = F.relu(output)
 
-        output = self.res8(output)
-        output = F.relu(output)
+        # output = self.res8(output)
+        # output = F.relu(output)
 
         output = self.lin8(output)
         output = F.log_softmax(output, dim=1)
@@ -126,7 +135,6 @@ def train(x_train, y_train, vdx, vdy, model, optimizer, criterion, batch_size=51
             optimizer.zero_grad()
             model.train()
             y_pred = model(bx)
-#             print(y_pred, by)
             loss = criterion(y_pred, by)
             loss.backward()
             avg_loss += loss.data[0]
@@ -146,13 +154,16 @@ def train(x_train, y_train, vdx, vdy, model, optimizer, criterion, batch_size=51
 
 bt_size = 4096
 model = Fcc(n_features).cuda()
-print(model)
-opt = torch.optim.SGD(model.parameters(), lr=1e-3,momentum=0.9)
-# opt = torch.optim.Adam(model.parameters(), lr=3e-3)
+model_name = "model_{0}.out".format(np.random.randint(0,1000))
+print(model_name,model)
+# opt = torch.optim.SGD(model.parameters(), lr=1e-3,momentum=0.9)
+opt = torch.optim.Adam(model.parameters(), lr=3e-3)
 crit = nn.NLLLoss()
 train(x_train, y_train, vdx, vdy, model, opt, crit, batch_size=bt_size, max_epoch=30, validation_interv=100)
 
 model.eval()
+
+prob = []
 ll=0
 ctrr=0
 for dx,dy in data_gen(vdx, vdy, batch_size=bt_size):
@@ -160,7 +171,10 @@ for dx,dy in data_gen(vdx, vdy, batch_size=bt_size):
     pred = dy_pred.exp().cpu().data.numpy()
     y_pred = np.argmax(pred, axis=1)
     tmp = np.sum( y_pred == dy.cpu().data.numpy())
+    prob.append(pred)
     ll += tmp
     ctrr += dx.shape[0]
-
+prob = np.concatenate(prob,axis = 0)
+pred = np.argmax(prob,axis=1)
+torch.save({"prob":prob,"pred":pred,"weight":model.state_dict()},model_name)
 print(ll/ctrr)

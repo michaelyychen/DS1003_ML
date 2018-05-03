@@ -213,7 +213,7 @@ def generate_data(train_years, test_years, fx_features_to_keep,
 def main():
     pitch_types = ["FF","SL","SI","CH","FT","CU","KC","FC","FS"]
     fx_features_to_keep = ["pitcher","batter", "pitch_type", "balls","strikes","pitch_count","inning","side", "umpcall"]
-    train_year = [5,6]
+    train_year = [4,5,6]
     test_year = [7]
     player_filename = "MLB_Players_Stats.csv"
     # features_for_LE_and_OH = ["pitcher","batter","side","p_throws","b_bats","pitch_type"]
