@@ -118,44 +118,62 @@ def one_hot_encoding_conversion(data,features_for_LE_and_OH, extra_features_for_
         x = OH_result
     y = data[label].as_matrix()
     return x.tocsr(),y
-def merge_Balls_Strikes(train, test):
-    def BallStrike2BS(row):
+def merge_Balls_Strikes_BaseStatus(train, test):
+    def BallStrike2BS_baseStatus(row):
         b = row["balls"]
         s = row["strikes"]
+        bs = 15
         if b is 0 and s is 0:
-            return 0
+            bs = 0
         elif b is 1 and s is 0:
-            return 1
+            bs = 1
         elif b is 2 and s is 0:
-            return 2
+            bs = 2
         elif b is 3 and s is 0:
-            return 3
+            bs = 3
         elif b is 0 and s is 1:
-            return 4
+            bs = 4
         elif b is 1 and s is 1:
-            return 5
+            bs = 5
         elif b is 2 and s is 1:
-            return 6
+            bs = 6
         elif b is 3 and s is 1:
-            return 7
+            bs = 7
         elif b is 0 and s is 2:
-            return 8
+            bs = 8
         elif b is 1 and s is 2:
-            return 9
+            bs = 9
         elif b is 2 and s is 2:
-            return 10
+            bs = 10
         elif b is 3 and s is 2:
-            return 11
+            bs = 11
         elif b is 4 and s is 0:
-            return 12
+            bs = 12
         elif b is 4 and s is 1:
-            return 13
+            bs = 13
         elif b is 4 and s is 2:
-            return 14
+            bs = 14
         else:
-            return 15
-    train["ball_strike"] = train.apply(BallStrike2BS,axis = 1)
-    test["ball_strike"] = test.apply(BallStrike2BS,axis = 1)
+            bs = 15
+        b1, b2, b3 = row["on_1b"], row["on_2b"], row["on_3b"]
+        if(len(b1)==1 and len(b2)==1 and len(b3)==1):
+            return bs,0
+        elif(len(b1)==1 and len(b2)==1 and len(b3)!=1):
+            return bs,1
+        elif(len(b1)==1 and len(b2)!=1 and len(b3)==1):
+            return bs,2
+        elif(len(b1)==1 and len(b2)!=1 and len(b3)!=1):
+            return bs,3
+        elif(len(b1)!=1 and len(b2)==1 and len(b3)==1):
+            return bs,4
+        elif(len(b1)!=1 and len(b2)==1 and len(b3)!=1):
+            return bs,5
+        elif(len(b1)!=1 and len(b2)!=1 and len(b3)==1):
+            return bs,6
+        elif(len(b1)!=1 and len(b2)!=1 and len(b3)!=1):
+            return bs,7
+    train["ball_strike"], train["base_status"] = zip(*train.apply(BallStrike2BS_baseStatus,axis = 1))
+    test["ball_strike"], test["base_status"] = zip(*test.apply(BallStrike2BS_baseStatus,axis = 1))
     return train, test
 
 def generate_data(train_years, test_years, fx_features_to_keep,
@@ -191,12 +209,13 @@ def generate_data(train_years, test_years, fx_features_to_keep,
     test_data = test_data_pitch_type_conversion(test_data,player,pitch_types)
 
     # Combine balls and strikes to one feature
-    train_data, test_data = merge_Balls_Strikes(train_data,test_data)
+    train_data, test_data = merge_Balls_Strikes_BaseStatus(train_data,test_data)
     if "balls" in features_for_LE_and_OH:
         features_for_LE_and_OH.remove("balls")
     if "strikes" in features_for_LE_and_OH:
         features_for_LE_and_OH.remove("strikes")
     extra_features_for_OH.append("ball_strike")
+    extra_features_for_OH.append("base_status")
     print(train_data.shape,test_data.shape)
 
     train_sz = train_data.shape[0]
@@ -223,9 +242,9 @@ def generate_data(train_years, test_years, fx_features_to_keep,
                     base_dir+filename)
 def main():
     pitch_types = ["FF","SL","SI","CH","FT","CU","KC","FC","FS"]
-    fx_features_to_keep = ["pitcher","batter", "pitch_type", "balls","strikes","pitch_count","inning","side", "umpcall"]
-    train_year = [4,5,6]
-    test_year = [7]
+    fx_features_to_keep = ["pitcher","batter", "pitch_type", "balls","strikes","pitch_count","inning","side", "umpcall","on_1b","on_2b","on_3b"]
+    train_year = [1]
+    test_year = [1]
     player_filename = "MLB_Players_Stats.csv"
     # features_for_LE_and_OH = ["pitcher","batter","side","p_throws","b_bats","pitch_type"]
     # features_for_LE_and_OH = ["side","p_throws","b_bats","pitch_type"]
