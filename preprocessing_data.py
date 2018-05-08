@@ -193,7 +193,6 @@ def generate_data(train_years, test_years, fx_features_to_keep,
 
     train_regular_season = [base_dir+"MLB_201{0}/MLB_PitchFX_201{0}_RegularSeason.csv".format(i) for i in train_years]
     train_post_season = [base_dir+"MLB_201{0}/MLB_PitchFX_201{0}_PostSeason.csv".format(i) for i in train_years]
-
     test_regular_season = [base_dir+"MLB_201{0}/MLB_PitchFX_201{0}_RegularSeason.csv".format(i) for i in test_years]
     test_post_season = [base_dir+"MLB_201{0}/MLB_PitchFX_201{0}_PostSeason.csv".format(i) for i in test_years]
 
