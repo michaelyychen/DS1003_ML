@@ -76,7 +76,7 @@ def union_batter_pitcher(p,f):
     # p.rename(columns={'bref_id': 'pitcher', 'last': 'p_last', 'first':'p_first', 'height': 'p_height', 'weight':'p_weight', 'age':'p_age', 'hit_ratio':'p_hit_ratio'}, inplace=True)
     # result = pd.concat([f, p], axis=1, join='inner')
 
-    combined = pd.merge(f, p[["pitcher", "p_throws","p_hit_ratio", "p_strike_ratio", "p_strike_ratio_logit"]], on='pitcher')
+    combined = pd.merge(f, p[["pitcher", "p_throws","p_hit_ratio", "p_hit_ratio_logit", "p_strike_ratio", "p_strike_ratio_logit"]], on='pitcher')
 
     for column in p.columns:
         b_columns.append("b_" +  column[2:])
