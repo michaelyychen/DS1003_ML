@@ -40,15 +40,17 @@ mlp_clsf = MLPClassifier(hidden_layer_sizes=(30,20 ),
                             beta_1=0.9, beta_2=0.999, epsilon=1e-08)
 
 # clf = LogisticRegression()
+print("Start fitting the model")
 mlp_clsf.fit(x_train, y_train)
 prob = mlp_clsf.predict_proba(x_test)
 pred = np.argmax(prob,axis=1)
 from confusion_matrix import generate_confusion_matrix
-generate_confusion_matrix(y_test,pred)
-# print(confusion_matrix(y_test, pred))
 print("loss: ",criterion(prob, y_test))
 print("Accuracy: ",accuracy(prob, y_test))
 print("train shape",x_train.shape)
 print("test shape",x_test.shape)
+generate_confusion_matrix(y_test,pred)
+# print(confusion_matrix(y_test, pred))
+
 
 # clf.score(logit_prob_y, test_y )

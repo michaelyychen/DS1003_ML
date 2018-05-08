@@ -102,7 +102,7 @@ def one_hot_encoding_conversion(data,features_for_LE_and_OH, extra_features_for_
     if len(features_for_LE_and_OH) is 0:
         LE_and_extra = data[extra_features_for_OH].fillna("-")
     else:
-    LE_and_extra = np.append(LE_result.transpose(),data[extra_features_for_OH].fillna("-"),axis=1)
+        LE_and_extra = np.append(LE_result.transpose(),data[extra_features_for_OH].fillna("-"),axis=1)
     OH_result = OH_enc.fit_transform(LE_and_extra)
     if NormalizeRest and len(features_rest) >0 :
         rest = data[features_rest]
@@ -115,7 +115,7 @@ def one_hot_encoding_conversion(data,features_for_LE_and_OH, extra_features_for_
         rest = np.append(rest_train,rest_test,axis = 0)
         x = scipy.sparse.hstack((OH_result,rest))
     else:
-        x = OH_result
+        x = x = scipy.sparse.hstack((OH_result,data[features_rest]))
     y = data[label].as_matrix()
     return x.tocsr(),y
 def merge_Balls_Strikes_BaseStatus(train, test):
@@ -146,7 +146,6 @@ def merge_Balls_Strikes_BaseStatus(train, test):
         elif b is 2 and s is 2:
             bs = 10
         elif b is 3 and s is 2:
-<<<<<<< HEAD
             bs = 11
         elif b is 4 and s is 0:
             bs = 12
@@ -175,7 +174,6 @@ def merge_Balls_Strikes_BaseStatus(train, test):
             return bs,7
     train["ball_strike"], train["base_status"] = zip(*train.apply(BallStrike2BS_baseStatus,axis = 1))
     test["ball_strike"], test["base_status"] = zip(*test.apply(BallStrike2BS_baseStatus,axis = 1))
-=======
     return train, test
 
 def generate_data(train_years, test_years, fx_features_to_keep,
@@ -216,10 +214,8 @@ def generate_data(train_years, test_years, fx_features_to_keep,
     if "strikes" in features_for_LE_and_OH:
         features_for_LE_and_OH.remove("strikes")
     extra_features_for_OH.append("ball_strike")
-<<<<<<< HEAD
     extra_features_for_OH.append("base_status")
     print(train_data.shape,test_data.shape)
-=======
 
     train_sz = train_data.shape[0]
     train_test = pd.concat([train_data,test_data])
@@ -246,8 +242,8 @@ def generate_data(train_years, test_years, fx_features_to_keep,
 def main():
     pitch_types = ["FF","SL","SI","CH","FT","CU","KC","FC","FS"]
     fx_features_to_keep = ["pitcher","batter", "pitch_type", "balls","strikes","pitch_count","inning","side", "umpcall","on_1b","on_2b","on_3b"]
-    train_year = [1]
-    test_year = [1]
+    train_year = [4,5,6]
+    test_year = [7]
     player_filename = "MLB_Players_Stats.csv"
     # features_for_LE_and_OH = ["pitcher","batter","side","p_throws","b_bats","pitch_type"]
      # features_for_LE_and_OH = ["side","p_throws","b_bats","pitch_type"]
@@ -256,8 +252,8 @@ def main():
     extra_features_for_OH = []
     # features_rest = ["pitch_count","balls","strikes","p_height", "p_weight", "p_age","b_height", "b_weight", "b_age","p_hit_ratio","b_hit_ratio"]+\
     #                 gen_pitch_type_feature_name(pitch_types)
-    # features_rest = ["pitch_count","p_hit_ratio","b_hit_ratio"]
-    features_rest = []
+    features_rest = ["p_hit_ratio_logit", "p_strike_ratio_logit"]
+    # features_rest = []
     filename = "save.pickle"
 
     generate_data(train_year,test_year,fx_features_to_keep,
@@ -266,7 +262,9 @@ def main():
             features_rest,
             pitch_types,
             filename=filename,
-            player_filename = player_filename)
+            player_filename = player_filename,
+            NormalizeRest = True,
+            toShuffle = True)
 
     # to read data from pickle
     x_train, y_train, x_test, y_test =  load_problem("Data/"+filename)
