@@ -102,7 +102,7 @@ def one_hot_encoding_conversion(data,features_for_LE_and_OH, extra_features_for_
     if len(features_for_LE_and_OH) is 0:
         LE_and_extra = data[extra_features_for_OH].fillna("-")
     else:
-        LE_and_extra = np.append(LE_result.transpose(),data[extra_features_for_OH].fillna("-"),axis=1)
+    LE_and_extra = np.append(LE_result.transpose(),data[extra_features_for_OH].fillna("-"),axis=1)
     OH_result = OH_enc.fit_transform(LE_and_extra)
     if NormalizeRest and len(features_rest) >0 :
         rest = data[features_rest]
@@ -250,7 +250,7 @@ def main():
     test_year = [1]
     player_filename = "MLB_Players_Stats.csv"
     # features_for_LE_and_OH = ["pitcher","batter","side","p_throws","b_bats","pitch_type"]
-    # features_for_LE_and_OH = ["side","p_throws","b_bats","pitch_type"]
+     # features_for_LE_and_OH = ["side","p_throws","b_bats","pitch_type"]
     features_for_LE_and_OH = []
     # extra_features_for_OH = ["inning"]
     extra_features_for_OH = []
