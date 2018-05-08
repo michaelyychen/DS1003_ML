@@ -1,6 +1,7 @@
 import preprocessing_data as prep
 import pandas as pd
 import numpy as np
+import math
 
 def gen_players_stats(all_data):
     pitch_types = all_data.pitch_type.unique()
@@ -80,13 +81,18 @@ def gen_players_stats(all_data):
                 pitch_type_val["possibility"] = 0
         if stat["pitch_count"] > 0:
             stat["strike_ratio"] = strike_count / stat["pitch_count"]
+            stat["strike_ratio_logit"] = math.log((stat["strike_ratio"]+1e-5)/(1-stat["strike_ratio"]+1e-5))
         else:
             stat["strike_ratio"] = 0
+            stat["strike_ratio_logit"] = math.log(1e-5)
             
         if stat["bat_count"] > 0:
             stat["hit_ratio"] = stat["hit_count"] / stat["bat_count"]
+            stat["hit_ratio_logit"] = math.log((stat["hit_ratio"]+1e-5)/(1-stat["hit_ratio"]+1e-5))
         else:
             stat["hit_ratio"] = 0
+            stat["hit_ratio_logit"] = math.log(1e-5)
+            
     return player_stats, pitch_types
 
 def combine_stats_with_original_player_data(players, player_stats,pitch_types):
@@ -96,7 +102,7 @@ def combine_stats_with_original_player_data(players, player_stats,pitch_types):
         col += [pth+"_speed" for pth in pitch_types]
         col += rest
         return col
-    for c  in new_col_names(pitch_types, ["hit_ratio","strike_ratio"]):
+    for c  in new_col_names(pitch_types, ["hit_ratio","strike_ratio","strike_ratio_logit","hit_ratio_logit"]):
         players[c] = 0 
     players["most_likely_pitch"] = "FF"
     temp = players.copy()
@@ -116,6 +122,8 @@ def combine_stats_with_original_player_data(players, player_stats,pitch_types):
                         most_like = pitch_type_val["possibility"]
             player["hit_ratio"] = plyer["hit_ratio"]
             player["strike_ratio"] = plyer["strike_ratio"]
+            player["strike_ratio_logit"] = plyer["strike_ratio_logit"]
+            player["hit_ratio_logit"] = plyer["hit_ratio_logit"]
         temp = temp.append(player)
     return temp
 
@@ -136,4 +144,4 @@ def main():
     new_players.to_csv(output_filename )
     print("CSV saved as \"{}\"".format(output_filename))
 if __name__ == '__main__':
-  main()
+    main()

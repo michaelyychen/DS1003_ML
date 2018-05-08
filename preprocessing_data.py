@@ -76,7 +76,7 @@ def union_batter_pitcher(p,f):
     # p.rename(columns={'bref_id': 'pitcher', 'last': 'p_last', 'first':'p_first', 'height': 'p_height', 'weight':'p_weight', 'age':'p_age', 'hit_ratio':'p_hit_ratio'}, inplace=True)
     # result = pd.concat([f, p], axis=1, join='inner')
 
-    combined = pd.merge(f, p[["pitcher", "p_throws","p_hit_ratio", "p_strike_ratio"]], on='pitcher')
+    combined = pd.merge(f, p[["pitcher", "p_throws","p_hit_ratio", "p_hit_ratio_logit", "p_strike_ratio", "p_strike_ratio_logit"]], on='pitcher')
 
     for column in p.columns:
         b_columns.append("b_" +  column[2:])
@@ -85,7 +85,7 @@ def union_batter_pitcher(p,f):
     # print(b_columns)
     # p.rename(columns={'pitcher': 'batter', "p_last":"b_last", "p_first":"b_first", "p_height":"b_height", "p_weight":"b_weight", "p_age":"b_age", "p_hit_ratio" : "b_hit_ratio"}, inplace=True)
     # result = pd.merge(result, p, on='batter')
-    combined = pd.merge(combined, p[["batter", "b_bats", "b_hit_ratio"]], on='batter')
+    combined = pd.merge(combined, p[["batter", "b_bats", "b_hit_ratio", "b_hit_ratio_logit"]], on='batter')
 
     return combined
 
@@ -146,6 +146,7 @@ def merge_Balls_Strikes_BaseStatus(train, test):
         elif b is 2 and s is 2:
             bs = 10
         elif b is 3 and s is 2:
+<<<<<<< HEAD
             bs = 11
         elif b is 4 and s is 0:
             bs = 12
@@ -174,6 +175,7 @@ def merge_Balls_Strikes_BaseStatus(train, test):
             return bs,7
     train["ball_strike"], train["base_status"] = zip(*train.apply(BallStrike2BS_baseStatus,axis = 1))
     test["ball_strike"], test["base_status"] = zip(*test.apply(BallStrike2BS_baseStatus,axis = 1))
+=======
     return train, test
 
 def generate_data(train_years, test_years, fx_features_to_keep,
@@ -215,8 +217,10 @@ def generate_data(train_years, test_years, fx_features_to_keep,
     if "strikes" in features_for_LE_and_OH:
         features_for_LE_and_OH.remove("strikes")
     extra_features_for_OH.append("ball_strike")
+<<<<<<< HEAD
     extra_features_for_OH.append("base_status")
     print(train_data.shape,test_data.shape)
+=======
 
     train_sz = train_data.shape[0]
     train_test = pd.concat([train_data,test_data])
