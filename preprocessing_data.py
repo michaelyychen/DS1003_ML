@@ -115,7 +115,7 @@ def one_hot_encoding_conversion(data,features_for_LE_and_OH, extra_features_for_
         rest = np.append(rest_train,rest_test,axis = 0)
         x = scipy.sparse.hstack((OH_result,rest))
     else:
-        x = x = scipy.sparse.hstack((OH_result,data[features_rest]))
+        x = scipy.sparse.hstack((OH_result,data[features_rest]))
     y = data[label].as_matrix()
     return x.tocsr(),y
 def merge_Balls_Strikes_BaseStatus(train, test):
@@ -155,6 +155,7 @@ def merge_Balls_Strikes_BaseStatus(train, test):
             bs = 14
         else:
             bs = 15
+        # Base status
         b1, b2, b3 = row["on_1b"], row["on_2b"], row["on_3b"]
         if(len(b1)==1 and len(b2)==1 and len(b3)==1):
             return bs,0
@@ -172,7 +173,8 @@ def merge_Balls_Strikes_BaseStatus(train, test):
             return bs,6
         elif(len(b1)!=1 and len(b2)!=1 and len(b3)!=1):
             return bs,7
-    train["ball_strike"], train["base_status"] = zip(*train.apply(BallStrike2BS_baseStatus,axis = 1))
+
+    train["ball_strike"], train["base_status"]  = zip(*train.apply(BallStrike2BS_baseStatus,axis = 1))
     test["ball_strike"], test["base_status"] = zip(*test.apply(BallStrike2BS_baseStatus,axis = 1))
     return train, test
 
@@ -196,7 +198,7 @@ def generate_data(train_years, test_years, fx_features_to_keep,
 
     if post_season:
         train_data = read_and_combine_data(train_regular_season+train_post_season,fx_features_to_keep)
-        test_data = read_and_combine_data(test_regular_season+test_post_season,fx_features_to_keep)
+        test_data = read_and_combine_data(test_regular_season + test_post_season,fx_features_to_keep)
     else:
         train_data = read_and_combine_data(train_regular_season,fx_features_to_keep)
         test_data = read_and_combine_data(test_regular_season,fx_features_to_keep)
@@ -213,8 +215,6 @@ def generate_data(train_years, test_years, fx_features_to_keep,
         features_for_LE_and_OH.remove("balls")
     if "strikes" in features_for_LE_and_OH:
         features_for_LE_and_OH.remove("strikes")
-    extra_features_for_OH.append("ball_strike")
-    extra_features_for_OH.append("base_status")
     print(train_data.shape,test_data.shape)
 
     train_sz = train_data.shape[0]
@@ -239,21 +239,75 @@ def generate_data(train_years, test_years, fx_features_to_keep,
     save_as_picke({"x_train":x_train,"y_train":y_train,
                     "x_test":x_test,"y_test":y_test},
                     base_dir+filename)
+
+def generate_data_simplified(train_years, test_years, fx_features_to_keep,
+                                features_for_LE_and_OH,
+                                extra_features_for_OH,
+                                features_rest,
+                                pitch_types,
+                                base_dir = "Data/",
+                                player_filename = "MLB_Players.csv",
+                                label = "umpcall",
+                                filename = "data.pickle",
+                                post_season = True,
+                                toShuffle = True,
+                                NormalizeRest = True):
+
+    train_regular_season = [base_dir+"MLB_201{0}/MLB_PitchFX_201{0}_RegularSeason.csv".format(i) for i in train_years]
+    train_post_season = [base_dir+"MLB_201{0}/MLB_PitchFX_201{0}_PostSeason.csv".format(i) for i in train_years]
+    test_regular_season = [base_dir+"MLB_201{0}/MLB_PitchFX_201{0}_RegularSeason.csv".format(i) for i in test_years]
+    test_post_season = [base_dir+"MLB_201{0}/MLB_PitchFX_201{0}_PostSeason.csv".format(i) for i in test_years]
+
+    if post_season:
+        train_data = read_and_combine_data(train_regular_season+train_post_season,fx_features_to_keep)
+        test_data = read_and_combine_data(test_regular_season + test_post_season,fx_features_to_keep)
+    else:
+        train_data = read_and_combine_data(train_regular_season,fx_features_to_keep)
+        test_data = read_and_combine_data(test_regular_season,fx_features_to_keep)
+
+    # Combine balls and strikes to one feature
+
+    train_data, test_data = merge_Balls_Strikes_BaseStatus(train_data,test_data)
+    if "balls" in features_for_LE_and_OH:
+        features_for_LE_and_OH.remove("balls")
+    if "strikes" in features_for_LE_and_OH:
+        features_for_LE_and_OH.remove("strikes")
+    print(train_data.shape,test_data.shape)
+    from sklearn.preprocessing import LabelEncoder,OneHotEncoder
+    train_sz = train_data.shape[0]
+    train_test = pd.concat([train_data,test_data])
+    LE_result = labe_encoder_conversion(train_test[features_rest].fillna("-").as_matrix(),features_rest)
+    x = np.append(LE_result.transpose(),train_test[extra_features_for_OH], axis = 1)
+    y = train_test[label]
+
+    print(y.value_counts())
+
+    # shuffle
+    x_train, y_train = shuffle(x[:train_sz], y[:train_sz])
+    x_test, y_test = shuffle(x[train_sz:], y[train_sz:])
+
+    print("Start writing data to {}".format(base_dir+filename))
+    print(x_train.shape,x_test.shape)
+    save_as_picke({"x_train":x_train,"y_train":y_train,
+                    "x_test":x_test,"y_test":y_test},
+                    base_dir+filename)
 def main():
     pitch_types = ["FF","SL","SI","CH","FT","CU","KC","FC","FS"]
     fx_features_to_keep = ["pitcher","batter", "pitch_type", "balls","strikes","pitch_count","inning","side", "umpcall","on_1b","on_2b","on_3b"]
     train_year = [4,5,6]
     test_year = [7]
+    # train_year = [1]
+    # test_year = [1]
     player_filename = "MLB_Players_Stats.csv"
-    # features_for_LE_and_OH = ["pitcher","batter","side","p_throws","b_bats","pitch_type"]
-     # features_for_LE_and_OH = ["side","p_throws","b_bats","pitch_type"]
-    features_for_LE_and_OH = []
+    features_for_LE_and_OH = ["pitcher","batter"]
+    # features_for_LE_and_OH = ["side","p_throws","b_bats","pitch_type"]
+    # features_for_LE_and_OH = []
     # extra_features_for_OH = ["inning"]
-    extra_features_for_OH = []
+    extra_features_for_OH = ["ball_strike"]
     # features_rest = ["pitch_count","balls","strikes","p_height", "p_weight", "p_age","b_height", "b_weight", "b_age","p_hit_ratio","b_hit_ratio"]+\
     #                 gen_pitch_type_feature_name(pitch_types)
-    features_rest = ["p_hit_ratio_logit", "p_strike_ratio_logit"]
-    # features_rest = []
+    # features_rest = ["p_hit_ratio_logit", "p_strike_ratio_logit"]
+    features_rest = []
     filename = "save.pickle"
 
     generate_data(train_year,test_year,fx_features_to_keep,
