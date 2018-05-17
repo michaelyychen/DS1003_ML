@@ -11,6 +11,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import time
 
+import argparse
+
 base_dir = "Data/"
 
 label2one = {'B':0,'S':1,'X':2, '<PAD>':3}
@@ -93,9 +95,6 @@ for y in train_years:
         train_y = np.concatenate((train_y, tmp_y), axis=0)
 
 
-# In[26]:
-
-
 filename = base_dir+"MLB_2017/MLB_PitchFX_2017_RegularSeason.csv"
 print("Loading test file {}".format(filename))
 f2 = pd.read_csv(filename)
@@ -120,17 +119,7 @@ tmp_y = vfunc(tmp_y)
 
 test_x = np.concatenate((test_x, tmp_x), axis=0)
 test_y = np.concatenate((test_y, tmp_y), axis=0)
-
-
-# In[27]:
-
-
 MAX_GAME_LEN = 597
-
-
-# # String to Index
-
-# In[28]:
 
 
 class Lang:
@@ -152,16 +141,6 @@ class Lang:
         else:
             self.word2count[word] += 1
 
-
-# In[29]:
-
-
-input_labels
-
-
-# In[30]:
-
-
 players = Lang('players')
 pitchers = Lang('pitchers')
 batters = Lang('batters')
@@ -176,10 +155,6 @@ for i in range(train_x.shape[0]):
     players.addword(train_x[i,5])
     pitchers.addword(train_x[i,4])
     batters.addword(train_x[i,5])
-
-
-# In[31]:
-
 
 def mat2ind(x):
     def findindex(s,lan):
@@ -289,7 +264,8 @@ class PlayerEmbedding(nn.Module):
         self.emb_balls = nn.Embedding(6, balls_dim)
         self.emb_strikes = nn.Embedding(6, strikes_dim)
 
-        self.emb_dim = 2*emb_dim + pc_dim + inn_dim + balls_dim + strikes_dim
+        self.emb_dim = balls_dim + strikes_dim + pc_dim + inn_dim + 2*emb_dim
+        #pc_dim + self.emb_dim = inn_dim + 
 
     def forward(self, x):
         e_inn = self.emb_inn(x[:,:,3])
@@ -304,14 +280,18 @@ class PlayerEmbedding(nn.Module):
         
         
 
-        emb_all = torch.cat([e_inn, e_p, e_b, 
+        emb_all = torch.cat([   e_inn,
+                                e_p, e_b, 
                                 #e_o1, e_o2, e_o3, 
-                                e_pc, e_bl, e_st], dim=2)
+                                e_pc, 
+                                e_bl, e_st], dim=2)
         return emb_all
 
     def init_weights(self):
         initrange = 0.5
-        em_layer = [self.emb_pitchers, self.emb_batters, self.emb_pc, self.emb_inn, self.emb_balls, self.emb_strikes]
+        em_layer = [ self.emb_pitchers, self.emb_batters, self.emb_pc, 
+                self.emb_inn, 
+                self.emb_balls, self.emb_strikes]
 
         for layer in em_layer:
             #layer.weight.data.normal_(0, initrange)
@@ -343,12 +323,14 @@ class LSTM(nn.Module):
         inputs: (batch_size, seq_len, feature_dim)
         '''
         #embedded = self.embedding(inp)
+        output = inp
+        output = torch.cat([output, onb], dim=2)
         output = self.act1(self.feat1(output))
         output = self.act2(self.feat2(output))
         output = self.act3(self.feat3(output))
         output = self.act4(self.feat4(output))
         
-        output = torch.cat([output, onb], dim=2)
+        #output = torch.cat([output, onb], dim=2)
         output = output.permute(1,0,2)
         
         bilstm_outs, nh = self.lstm(output, hidden)
@@ -370,6 +352,7 @@ class LSTM(nn.Module):
 def train(train_x, train_y, dev_x, dev_y,emb, model, scheduler, optimizer, criterion, batch_size=512, 
           max_epoch = 512, validation_interv=1000, show_iter=10):
     start = time.time()
+    best_loss = 1000
     for ep in range(max_epoch):
         print("Epoch {}".format(ep+1))
         model.train()
@@ -416,11 +399,17 @@ def train(train_x, train_y, dev_x, dev_y,emb, model, scheduler, optimizer, crite
                 avg_loss = 0
                 ctr = 0
                 acc = 0
-        
-        lo, ac = calPerf(dev_x, dev_y, emb, model, criterion, batch_size)
-        
+        with torch.no_grad():
+            lo, ac = calPerf(dev_x, dev_y, emb, model, criterion, batch_size)
+            if best_loss > lo:
+                best_loss = lo
+                torch.save(emb.state_dict(), "best_rnn_emb.pk")
+                torch.save(model.state_dict(), "best_rnn_model.pk")
 
         print("Time: {}, loss:{} dev_loss:{}, dev_acc:{}".format(time.time() - start, avg_loss/ctr, lo, ac))
+        import os.path
+        if os.path.exists("./STOP"):
+            return
 
 
 def calPerf(dev_x, dev_y, emb, model, criterion, batch_size=16):
@@ -502,8 +491,16 @@ def generate_confusion_matrix(true_y, pred_y, file_name = "confusion_matrix.png"
     #plt.show()
 
 if __name__=='__main__':
+    parser = argparse.ArgumentParser(description='Seq model')
+    parser.add_argument('--best', action='store_true', help='use best model')
+    parser.add_argument('--eval', action='store_true', help='no training model')
+    parser.add_argument('--seed', type=int, default=None)
+    parser.add_argument('--maxepoch', type=int, default=100)
+    args = parser.parse_args()
+    print(args)
+    
     from sklearn.model_selection import train_test_split
-    train_x, dev_x, train_y, dev_y = train_test_split(ntrain_x, ntrain_y, test_size=0.1, random_state=0, shuffle=True)
+    train_x, dev_x, train_y, dev_y = train_test_split(ntrain_x, ntrain_y, test_size=0.1, random_state=args.seed, shuffle=True)
     vtrainx = Variable(torch.from_numpy(train_x.astype(np.long)), requires_grad=False).to(DEVICE)
     vtrainy = Variable(torch.from_numpy(train_y.astype(np.long)), requires_grad=False).to(DEVICE)
 
@@ -515,22 +512,28 @@ if __name__=='__main__':
     emb = PlayerEmbedding(5, pitchers.n_words, batters.n_words, 5, 5, 5, 10).to(DEVICE)
 
 
-    model = LSTM(400, emb, dp=0.1, n_layers=2).to(DEVICE)
+    model = LSTM(200, emb, dp=0.1, n_layers=1).to(DEVICE)
     print(model)
     opt = torch.optim.Adam(list(model.parameters()) + list(emb.parameters()), lr=1e-3)
-    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=5, eta_min=0)
-    #opt = torch.optim.Adagrad(model.parameters(), lr=0.01, lr_decay=0, weight_decay=0)
+    # sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=5, eta_min=0)
+    sched = None
+    # opt = torch.optim.Adagrad(model.parameters(), lr=0.01, lr_decay=0, weight_decay=0)
     crit = nn.NLLLoss()
 
     emb.init_weights()
-
-    train(vtrainx, vtrainy, vdevx, vdevy,emb, model, sched, opt, crit, batch_size=200, max_epoch=30, show_iter=10)
+    if args.best:
+        print("load best model")
+        model.load_state_dict(torch.load("best_rnn_model.pk"))
+        emb.load_state_dict(torch.load("best_rnn_emb.pk"))
+    if not args.eval:
+        train(vtrainx, vtrainy, vdevx, vdevy,emb, model, sched, opt, crit, batch_size=512, max_epoch=args.maxepoch, show_iter=10)
+    model.load_state_dict(torch.load("best_rnn_model.pk"))
+    emb.load_state_dict(torch.load("best_rnn_emb.pk"))
     py = calPred(vtestx, vtesty, emb, model, crit)
     test_loss = crit(py, vtrue_y).item()
     _, label_y = torch.max(py, dim=1)
     test_acc = torch.sum(label_y == vtrue_y).item() / vtrue_y.shape[0]
     label_y = label_y.cpu().numpy()
-    print(model)
     torch.save(emb.state_dict(), "rnn_emb.pk")
     torch.save(model.state_dict(), "rnn_model.pk")
     print("test loss: {}, test_acc: {}".format(test_loss, test_acc))
